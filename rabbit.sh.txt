@@ -1,0 +1,45 @@
+#!/bin/bash 
+#cat /etc/redhat-release
+yum update
+yum list | grep erlang
+curl -s https://packagecloud.io/install/repositories/rabbitmq/rabbitmq-server/script.rpm.sh | sudo bash
+rpm --import https://github.com/rabbitmq/signing-keys/releases/download/2.0/rabbitmq-release-signing-key.asc
+rpm --import https://packagecloud.io/rabbitmq/erlang/gpgkey
+rpm --import https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey
+yum clean all
+yum update
+  
+#vi /etc/yum.repos.d/rabbitmq_rabbitmq-server.repo
+#copy repo info from doc into above file
+
+cd /etc/yum.repos.d/
+echo "[rabbitmq_erlang]
+name=rabbitmq_erlang
+baseurl=https://packagecloud.io/rabbitmq/erlang/el/7/$basearch
+repo_gpgcheck=1
+gpgcheck=1
+enabled=1
+# PackageCloud's repository key and RabbitMQ package signing key
+gpgkey=https://packagecloud.io/rabbitmq/erlang/gpgkey
+       https://github.com/rabbitmq/signing-keys/releases/download/2.0/rabbitmq-release-signing-key.asc
+sslverify=1
+sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+metadata_expire=300" >> rabbitmq_rabbitmq-server.repo
+
+
+yum update -y
+   
+yum -q makecache -y --adisablerepo='*' --enablerepo='rabbitmq_erlang' --enablerepo='rabbitmq_rabbitmq-server'
+yum install socat logrotate -y
+   
+yum install --enablerepo=rabbitmq_erlang --enablerepo=rabbitmq_rabbitmq-server erlang rabbitmq-server
+# rabbitmqctl --help
+
+echo "Start the RabbitMQ server and enable it to start on system boot"
+systemctl start rabbitmq-server.service
+systemctl enable rabbitmq-server.service
+
+echo "You can check the status of RabbitMQ with:"
+rabbitmqctl status
+
+echo "rabbitMQ installation completed..."
